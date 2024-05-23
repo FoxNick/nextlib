@@ -117,7 +117,7 @@ JniContext *createVideoContext(JNIEnv *env,
     jniContext->codecContext = codecContext;
 
     // Populate JNI References.
-    jclass outputBufferClass = env->FindClass("androidx/media3/decoder/VideoDecoderOutputBuffer");
+    jclass outputBufferClass = env->FindClass("com/google/android/exoplayer2/decoder/VideoDecoderOutputBuffer");
     jniContext->data_field = env->GetFieldID(outputBufferClass, "data", "Ljava/nio/ByteBuffer;");
     jniContext->yuvStrides_field = env->GetFieldID(outputBufferClass, "yuvStrides", "[I");
     jniContext->yuvPlanes_field = env->GetFieldID(outputBufferClass, "yuvPlanes", "[Ljava/nio/ByteBuffer;");
