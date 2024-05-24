@@ -9,10 +9,10 @@ cmake_minimum_required(VERSION 3.22.1)
 
 project("media3ext")
 
-set(ffmpeg_dir ${CMAKE_SOURCE_DIR}/../../../../ffmpeg)
-set(ffmpeg_libs ${ffmpeg_dir}/android-libs/${ANDROID_ABI})
+set(ffmpeg_dir ${CMAKE_SOURCE_DIR}/../../../../ffmpeg/build)
+set(ffmpeg_libs ${ffmpeg_dir}/${ANDROID_ABI}/lib)
 
-include_directories(${ffmpeg_dir})
+include_directories(${ffmpeg_dir}/${ANDROID_ABI}/include)
 
 set(
         # List variable name
