@@ -18,7 +18,7 @@ set(
         # List variable name
         ffmpeg_libs_names
         # Values in the list
-        libdav1d libmbedcrypto libmbedtls libmbedx509 libvpx avutil avcodec swresample swscale)
+        dav1d mbedcrypto mbedtls mbedx509 vpx avutil avcodec swresample swscale)
 
 foreach (ffmpeg_lib_name ${ffmpeg_libs_names})
     add_library(
