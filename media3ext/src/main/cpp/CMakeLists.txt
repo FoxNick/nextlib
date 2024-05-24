@@ -14,13 +14,13 @@ project(media3ext C CXX)
 set(ffmpeg_dir ${CMAKE_SOURCE_DIR}/../../../../ffmpeg/output)
 set(ffmpeg_libs ${ffmpeg_dir}/lib/${ANDROID_ABI})
 
-foreach(ffmpeg_lib avutil avcodec swresample swscale)
+foreach(ffmpeg_lib_name avutil avcodec swresample swscale)
     add_library(
-            ${ffmpeg_lib}
+            ${ffmpeg_lib_name}
             STATIC
             IMPORTED)
     set_target_properties(
-            ${ffmpeg_lib} PROPERTIES
+            ${ffmpeg_lib_name} PROPERTIES
             IMPORTED_LOCATION
             ${ffmpeg_libs}/lib${ffmpeg_lib_name}.a)
 endforeach()
