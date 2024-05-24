@@ -46,6 +46,3 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
         PRIVATE android
         PRIVATE ${ffmpeg_libs_names})
         
-if(ANDROID_ABI STREQUAL "arm64-v8a")
-    target_link_options(${CMAKE_PROJECT_NAME} PRIVATE "-Wl,-Bsymbolic")
-endif()
