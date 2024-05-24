@@ -29,8 +29,10 @@ foreach (ffmpeg_lib_name ${ffmpeg_libs_names})
             ${ffmpeg_lib_name}
             PROPERTIES
             IMPORTED_LOCATION
-            ${ffmpeg_libs}/lib${ffmpeg_lib_name}.so)
+            ${ffmpeg_libs}/lib${ffmpeg_lib_name}.a)
 endforeach ()
+
+find_library(android_log_lib log)
 
 add_library(${CMAKE_PROJECT_NAME} SHARED
         # List C/C++ source files with relative paths to this CMakeLists.txt.
@@ -41,6 +43,10 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
 
 target_link_libraries(${CMAKE_PROJECT_NAME}
         # List libraries link to the target library
-        PRIVATE log
+        PRIVATE ${android_log_lib}
         PRIVATE android
         PRIVATE ${ffmpeg_libs_names})
+        
+if(ANDROID_ABI STREQUAL "arm64-v8a")
+    target_link_options(${CMAKE_PROJECT_NAME} PRIVATE "-Wl,-Bsymbolic")
+endif()
