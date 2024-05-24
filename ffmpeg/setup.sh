@@ -312,7 +312,7 @@ function buildFfmpeg() {
 
     # Configure FFmpeg build
     ./configure \
-      --prefix=$BUILD_DIR/$ABI \
+      --prefix=$BUILD_DIR/external/$ABI \
       --enable-cross-compile \
       --arch=$ARCH \
       --cpu=$CPU \
