@@ -23,7 +23,7 @@ set(
 foreach (ffmpeg_lib_name ${ffmpeg_libs_names})
     add_library(
             ${ffmpeg_lib_name}
-            SHARED
+            STATIC
             IMPORTED)
     set_target_properties(
             ${ffmpeg_lib_name}
@@ -43,4 +43,4 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
         # List libraries link to the target library
         log
         android
-        ${ffmpeg_libs_names})
+        PRIVATE ${ffmpeg_libs_names})
