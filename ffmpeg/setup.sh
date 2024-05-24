@@ -325,8 +325,8 @@ function buildFfmpeg() {
       --extra-ldflags="$DEP_LD_FLAGS" \
       --pkg-config="$(which pkg-config)" \
       --target-os=android \
-      --enable-shared \
-      --disable-static \
+      --disable-shared \
+      --enable-static \
       --disable-doc \
       --disable-programs \
       --disable-everything \
