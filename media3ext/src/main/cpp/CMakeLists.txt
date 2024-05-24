@@ -5,32 +5,28 @@
 
 cmake_minimum_required(VERSION 3.22.1)
 
-# Declares and names the project.
+# Enable C++11 features.
+set(CMAKE_CXX_STANDARD 11)
 
-project("media3ext")
+# Declares and names the project.
+project(media3ext C CXX)
 
 set(ffmpeg_dir ${CMAKE_SOURCE_DIR}/../../../../ffmpeg/output)
 set(ffmpeg_libs ${ffmpeg_dir}/lib/${ANDROID_ABI})
 
-include_directories(${ffmpeg_dir}/include/${ANDROID_ABI})
-
-set(
-        # List variable name
-        ffmpeg_libs_names
-        # Values in the list
-        avutil avcodec swresample swscale)
-
-foreach (ffmpeg_lib_name ${ffmpeg_libs_names})
+foreach(ffmpeg_lib avutil avcodec swresample swscale)
     add_library(
-            ${ffmpeg_lib_name}
+            ${ffmpeg_lib}
             STATIC
             IMPORTED)
     set_target_properties(
-            ${ffmpeg_lib_name}
-            PROPERTIES
+            ${ffmpeg_lib} PROPERTIES
             IMPORTED_LOCATION
             ${ffmpeg_libs}/lib${ffmpeg_lib_name}.a)
-endforeach ()
+endforeach()
+
+include_directories(${ffmpeg_dir}/include/${ANDROID_ABI})
+find_library(android_log_lib log)
 
 add_library(${CMAKE_PROJECT_NAME} 
         SHARED
@@ -42,7 +38,10 @@ add_library(${CMAKE_PROJECT_NAME}
 
 target_link_libraries(${CMAKE_PROJECT_NAME}
         # List libraries link to the target library
-        log
-        android
-        ${ffmpeg_libs_names})
+        PRIVATE android
+        PRIVATE swscale
+        PRIVATE swresample
+        PRIVATE avcodec
+        PRIVATE avutil
+        PRIVATE ${android_log_lib})
         
