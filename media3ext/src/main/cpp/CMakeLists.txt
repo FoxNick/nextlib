@@ -9,10 +9,10 @@ cmake_minimum_required(VERSION 3.22.1)
 
 project("media3ext")
 
-set(ffmpeg_dir ${CMAKE_SOURCE_DIR}/../../../../ffmpeg/output)
-set(ffmpeg_libs ${ffmpeg_dir}/lib/${ANDROID_ABI})
+set(ffmpeg_dir ${CMAKE_SOURCE_DIR}/../../../../ffmpeg)
+set(ffmpeg_libs ${ffmpeg_dir}/android-libs/${ANDROID_ABI})
 
-include_directories(${ffmpeg_dir}/include/${ANDROID_ABI})
+include_directories(${ffmpeg_dir})
 
 set(
         # List variable name
@@ -32,9 +32,8 @@ foreach (ffmpeg_lib_name ${ffmpeg_libs_names})
             ${ffmpeg_libs}/lib${ffmpeg_lib_name}.a)
 endforeach ()
 
-find_library(android_log_lib log)
-
-add_library(${CMAKE_PROJECT_NAME} SHARED
+add_library(${CMAKE_PROJECT_NAME} 
+        SHARED
         # List C/C++ source files with relative paths to this CMakeLists.txt.
         ffmain.cpp
         ffcommon.cpp
@@ -43,7 +42,7 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
 
 target_link_libraries(${CMAKE_PROJECT_NAME}
         # List libraries link to the target library
-        PRIVATE ${android_log_lib}
+        PRIVATE log
         PRIVATE android
         PRIVATE ${ffmpeg_libs_names})
         
