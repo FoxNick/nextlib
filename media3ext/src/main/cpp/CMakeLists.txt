@@ -9,7 +9,7 @@ cmake_minimum_required(VERSION 3.22.1)
 
 project("media3ext")
 
-set(ffmpeg_dir ${CMAKE_SOURCE_DIR}/../../../../ffmpeg/build/external)
+set(ffmpeg_dir ${CMAKE_SOURCE_DIR}/../../../../ffmpeg/build)
 set(ffmpeg_libs ${ffmpeg_dir}/${ANDROID_ABI}/lib)
 
 include_directories(${ffmpeg_dir}/${ANDROID_ABI}/include)
@@ -18,7 +18,7 @@ set(
         # List variable name
         ffmpeg_libs_names
         # Values in the list
-        dav1d mbedcrypto mbedtls mbedx509 vpx avutil avcodec swresample swscale)
+        avutil avcodec swresample swscale)
 
 foreach (ffmpeg_lib_name ${ffmpeg_libs_names})
     add_library(
