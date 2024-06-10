@@ -30,7 +30,7 @@ foreach(ffmpeg_lib_name ${ffmpeg_libs_names})
     set_target_properties(
             ${ffmpeg_lib_name} PROPERTIES
             IMPORTED_LOCATION
-            ${ffmpeg_libs}/nextlib${ffmpeg_lib_name}.so)
+            ${ffmpeg_libs}/libnext${ffmpeg_lib_name}.so)
 endforeach()
 
 
