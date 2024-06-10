@@ -325,8 +325,8 @@ function buildFfmpeg() {
       --extra-ldflags="$DEP_LD_FLAGS" \
       --pkg-config="$(which pkg-config)" \
       --target-os=android \
-      --disable-shared \
-      --enable-static \
+      --enable-shared \
+      --disable-static \
       --disable-doc \
       --disable-programs \
       --disable-everything \
@@ -355,10 +355,22 @@ function buildFfmpeg() {
     make clean
     make -j$JOBS
     make install
-    
+
     OUTPUT_LIB=${OUTPUT_DIR}/lib/${ABI}
     mkdir -p "${OUTPUT_LIB}"
-    cp "${BUILD_DIR}"/"${ABI}"/lib/*.a "${OUTPUT_LIB}"
+    # 遍历源目录下的所有.so文件
+    for file in "$OUTPUT_LIB"/*.so; do
+        # 获取文件名称
+        filename=$(basename "$file")
+        stripped_filename="${filename#lib}"
+        # 复制文件到目标目录
+        cp "$file" "${BUILD_DIR}/${ABI}/lib/nextlib${filename}"
+    
+        # 如果需要删除原文件，取消下面这行的注释
+        # rm "$file"
+    done
+
+    # cp "${BUILD_DIR}"/"${ABI}"/lib/*.so "${OUTPUT_LIB}"
 
     OUTPUT_HEADERS=${OUTPUT_DIR}/include/${ABI}
     mkdir -p "${OUTPUT_HEADERS}"
