@@ -359,12 +359,12 @@ function buildFfmpeg() {
     OUTPUT_LIB=${OUTPUT_DIR}/lib/${ABI}
     mkdir -p "${OUTPUT_LIB}"
     # 遍历源目录下的所有.so文件
-    for file in "$OUTPUT_LIB"/*.so; do
+    for file in "${BUILD_DIR}"/"${ABI}"/lib/*.so; do
         # 获取文件名称
         filename=$(basename "$file")
         stripped_filename="${filename#lib}"
         # 复制文件到目标目录
-        cp "$file" "$BUILD_DIR/$ABI/lib/libnext$stripped_filename"
+        cp "$file" "$OUTPUT_LIB/libnext$stripped_filename"
     
         # 如果需要删除原文件，取消下面这行的注释
         # rm "$file"
