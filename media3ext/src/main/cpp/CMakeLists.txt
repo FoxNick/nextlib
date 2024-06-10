@@ -14,19 +14,25 @@ project(media3ext C CXX)
 set(ffmpeg_dir ${CMAKE_SOURCE_DIR}/../../../../ffmpeg/output)
 set(ffmpeg_libs ${ffmpeg_dir}/lib/${ANDROID_ABI})
 
-foreach(ffmpeg_lib_name avutil avcodec swresample swscale)
+include_directories(${ffmpeg_dir}/include/${ANDROID_ABI})
+
+set(
+        # List variable name
+        ffmpeg_libs_names
+        # Values in the list
+        avutil avcodec swresample swscale)
+        
+foreach(ffmpeg_lib_name ${ffmpeg_libs_names})
     add_library(
             ${ffmpeg_lib_name}
-            STATIC
+            SHARED
             IMPORTED)
     set_target_properties(
             ${ffmpeg_lib_name} PROPERTIES
             IMPORTED_LOCATION
-            ${ffmpeg_libs}/lib${ffmpeg_lib_name}.a)
+            ${ffmpeg_libs}/nextlib${ffmpeg_lib_name}.so)
 endforeach()
 
-include_directories(${ffmpeg_dir}/include/${ANDROID_ABI})
-find_library(android_log_lib log)
 
 add_library(${CMAKE_PROJECT_NAME} 
         SHARED
@@ -38,10 +44,7 @@ add_library(${CMAKE_PROJECT_NAME}
 
 target_link_libraries(${CMAKE_PROJECT_NAME}
         # List libraries link to the target library
-        PRIVATE android
-        PRIVATE swscale
-        PRIVATE swresample
-        PRIVATE avcodec
-        PRIVATE avutil
-        PRIVATE ${android_log_lib})
+        log
+        android
+        ${ffmpeg_libs_names})
         
