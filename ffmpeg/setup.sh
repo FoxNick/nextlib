@@ -364,7 +364,7 @@ function buildFfmpeg() {
         filename=$(basename "$file")
         stripped_filename="${filename#lib}"
         # 复制文件到目标目录
-        cp "$file" "${BUILD_DIR}/${ABI}/lib/nextlib${filename}"
+        cp "$file" "$BUILD_DIR/$ABI/lib/libnext$stripped_filename"
     
         # 如果需要删除原文件，取消下面这行的注释
         # rm "$file"
