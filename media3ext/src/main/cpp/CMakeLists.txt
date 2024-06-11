@@ -9,7 +9,7 @@ cmake_minimum_required(VERSION 3.22.1)
 set(CMAKE_CXX_STANDARD 11)
 
 # Declares and names the project.
-project(media3ext C CXX)
+project(media3ext)
 
 set(ffmpeg_dir ${CMAKE_SOURCE_DIR}/../../../../ffmpeg/output)
 set(ffmpeg_libs ${ffmpeg_dir}/lib/${ANDROID_ABI})
