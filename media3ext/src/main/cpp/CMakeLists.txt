@@ -20,7 +20,7 @@ set(
         # List variable name
         ffmpeg_libs_names
         # Values in the list
-        avutil avcodec swresample swscale)
+        nextavutil nextavcodec nextswresample nextswscale)
         
 foreach(ffmpeg_lib_name ${ffmpeg_libs_names})
     add_library(
@@ -30,7 +30,7 @@ foreach(ffmpeg_lib_name ${ffmpeg_libs_names})
     set_target_properties(
             ${ffmpeg_lib_name} PROPERTIES
             IMPORTED_LOCATION
-            ${ffmpeg_libs}/libnext${ffmpeg_lib_name}.so)
+            ${ffmpeg_libs}/lib${ffmpeg_lib_name}.so)
 endforeach()
 
 
