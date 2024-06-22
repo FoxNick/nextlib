@@ -325,8 +325,8 @@ function buildFfmpeg() {
       --extra-ldflags="$DEP_LD_FLAGS" \
       --pkg-config="$(which pkg-config)" \
       --target-os=android \
-      --enable-shared \
-      --disable-static \
+      --enable-static \
+      --disable-shared \
       --disable-doc \
       --disable-programs \
       --disable-everything \
@@ -358,24 +358,27 @@ function buildFfmpeg() {
 
     OUTPUT_LIB=${OUTPUT_DIR}/lib/${ABI}
     mkdir -p "${OUTPUT_LIB}"
-    # 遍历源目录下的所有.so文件
-    for file in "${BUILD_DIR}"/"${ABI}"/lib/*.so; do
-        # 获取文件名称
-        filename=$(basename "$file")
-        stripped_filename="${filename#lib}"
-        # 复制文件到目标目录
-        cp "$file" "$OUTPUT_LIB/libnext$stripped_filename"
-    
-        # 如果需要删除原文件，取消下面这行的注释
-        # rm "$file"
-    done
 
-    # cp "${BUILD_DIR}"/"${ABI}"/lib/*.so "${OUTPUT_LIB}"
+    cp "${BUILD_DIR}"/external/"${ABI}"/lib/*.a "${OUTPUT_LIB}"
+    cp "${BUILD_DIR}"/"${ABI}"/lib/*.a "${OUTPUT_LIB}"
 
     OUTPUT_HEADERS=${OUTPUT_DIR}/include/${ABI}
     mkdir -p "${OUTPUT_HEADERS}"
+    cp -r "${BUILD_DIR}"/external/"${ABI}"/include/* "${OUTPUT_HEADERS}"
     cp -r "${BUILD_DIR}"/"${ABI}"/include/* "${OUTPUT_HEADERS}"
 
+    
+    # 遍历源目录下的所有.so文件
+    # for file in "${BUILD_DIR}"/"${ABI}"/lib/*.so; do
+        # 获取文件名称
+        # filename=$(basename "$file")
+        # stripped_filename="${filename#lib}"
+        # 复制文件到目标目录
+        # cp "$file" "$OUTPUT_LIB/libnext$stripped_filename"
+    
+        # 如果需要删除原文件，取消下面这行的注释
+        # rm "$file"
+    # done
 
   done
   popd
