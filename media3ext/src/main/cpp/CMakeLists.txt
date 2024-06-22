@@ -15,22 +15,24 @@ set(ffmpeg_dir ${CMAKE_SOURCE_DIR}/../../../../ffmpeg/output)
 set(ffmpeg_libs ${ffmpeg_dir}/lib/${ANDROID_ABI})
 
 include_directories(${ffmpeg_dir}/include/${ANDROID_ABI})
+# include_directories(${CMAKE_SOURCE_DIR}/../../../../ffmpeg/build//${ANDROID_ABI})/include")
+# include_directories(${CMAKE_SOURCE_DIR}/../../../../ffmpeg/build//${ANDROID_ABI})/lib")
 
 set(
         # List variable name
         ffmpeg_libs_names
         # Values in the list
-        nextavutil nextavcodec nextswresample nextswscale)
+        mbedtls vpx dav1d avutil avcodec swresample swscale )
         
 foreach(ffmpeg_lib_name ${ffmpeg_libs_names})
     add_library(
             ${ffmpeg_lib_name}
-            SHARED
+            STATIC
             IMPORTED)
     set_target_properties(
             ${ffmpeg_lib_name} PROPERTIES
             IMPORTED_LOCATION
-            ${ffmpeg_libs}/lib${ffmpeg_lib_name}.so)
+            ${ffmpeg_libs}/lib${ffmpeg_lib_name}.a)
 endforeach()
 
 
