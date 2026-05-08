@@ -3,6 +3,7 @@
 # Versions
 VPX_VERSION=1.13.0
 MBEDTLS_VERSION=3.4.1
+DAV1D_VERSION=1.5.3
 FFMPEG_VERSION=6.0
 
 # Directories
@@ -13,11 +14,12 @@ SOURCES_DIR=$BASE_DIR/sources
 FFMPEG_DIR=$SOURCES_DIR/ffmpeg-$FFMPEG_VERSION
 VPX_DIR=$SOURCES_DIR/libvpx-$VPX_VERSION
 MBEDTLS_DIR=$SOURCES_DIR/mbedtls-$MBEDTLS_VERSION
+DAV1D_DIR=$SOURCES_DIR/dav1d-$DAV1D_VERSION
 
 # Configuration
 ANDROID_ABIS="x86 x86_64 armeabi-v7a arm64-v8a"
 ANDROID_PLATFORM=21
-ENABLED_DECODERS="vorbis opus flac alac pcm_mulaw pcm_alaw mp3 amrnb amrwb aac ac3 eac3 dca mlp truehd h264 hevc mpeg2video mpegvideo libvpx_vp8 libvpx_vp9"
+ENABLED_DECODERS="vorbis opus flac alac pcm_mulaw pcm_alaw mp3 amrnb amrwb aac ac3 eac3 dca mlp truehd h264 hevc mpeg2video mpegvideo libvpx_vp8 libvpx_vp9 libdav1d"
 JOBS=$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || sysctl -n hw.pysicalcpu || echo 4)
 
 # Set up host platform variables
@@ -75,6 +77,17 @@ function downloadMbedTLS() {
   [ -e $MBEDTLS_FILE ] || { echo "$MBEDTLS_FILE does not exist. Exiting..."; exit 1; }
   tar -zxf $MBEDTLS_FILE
   rm $MBEDTLS_FILE
+  popd
+}
+
+function downloadDav1d() {
+  pushd $SOURCES_DIR
+  echo "Downloading dav1d source code of version $DAV1D_VERSION..."
+  DAV1D_FILE=dav1d-$DAV1D_VERSION.tar.gz
+  curl -L "https://code.videolan.org/videolan/dav1d/-/archive/${DAV1D_VERSION}/dav1d-${DAV1D_VERSION}.tar.gz" -o $DAV1D_FILE
+  [ -e $DAV1D_FILE ] || { echo "$DAV1D_FILE does not exist. Exiting..."; exit 1; }
+  tar -zxf $DAV1D_FILE
+  rm $DAV1D_FILE
   popd
 }
 
@@ -178,6 +191,50 @@ function buildMbedTLS() {
     popd
 }
 
+function buildDav1d() {
+  pushd $DAV1D_DIR
+
+  for ABI in $ANDROID_ABIS; do
+    CMAKE_BUILD_DIR=$DAV1D_DIR/dav1d_build_${ABI}
+    rm -rf ${CMAKE_BUILD_DIR}
+    mkdir -p ${CMAKE_BUILD_DIR}
+    cd ${CMAKE_BUILD_DIR}
+
+    # Determine ASM settings based on ABI
+    case $ABI in
+    armeabi-v7a)
+      DAV1D_ASM_FLAG=ON
+      ;;
+    arm64-v8a)
+      DAV1D_ASM_FLAG=ON
+      ;;
+    x86)
+      DAV1D_ASM_FLAG=OFF
+      ;;
+    x86_64)
+      DAV1D_ASM_FLAG=OFF
+      ;;
+    esac
+
+    ${CMAKE_EXECUTABLE} .. \
+      -DANDROID_PLATFORM=${ANDROID_PLATFORM} \
+      -DANDROID_ABI=$ABI \
+      -DCMAKE_TOOLCHAIN_FILE=${ANDROID_NDK_HOME}/build/cmake/android.toolchain.cmake \
+      -DCMAKE_INSTALL_PREFIX=$BUILD_DIR/external/$ABI \
+      -DCMAKE_SHARED_LINKER_FLAGS="-Wl,-z,max-page-size=16384" \
+      -DBUILD_SHARED_LIBS=OFF \
+      -DENABLE_TESTS=OFF \
+      -DENABLE_TOOLS=OFF \
+      -DENABLE_EXAMPLES=OFF \
+      -DDAV1D_ASM=${DAV1D_ASM_FLAG}
+
+    make -j$JOBS
+    make install
+
+  done
+  popd
+}
+
 function buildFfmpeg() {
   pushd $FFMPEG_DIR
   EXTRA_BUILD_CONFIGURATION_FLAGS=""
@@ -246,7 +303,6 @@ function buildFfmpeg() {
       --disable-everything \
       --disable-vulkan \
       --disable-avdevice \
-      --disable-avformat \
       --disable-postproc \
       --disable-avfilter \
       --disable-symver \
@@ -255,11 +311,13 @@ function buildFfmpeg() {
       --enable-swresample \
       --enable-avformat \
       --enable-libvpx \
+      --enable-libdav1d \
       --enable-protocol=file,http,https,mmsh,mmst,pipe,rtmp,rtmps,rtmpt,rtmpts,rtp,tls \
       --enable-version3 \
       --enable-mbedtls \
       --extra-ldexeflags=-pie \
       --disable-debug \
+      --build-suffix=-exo \
       ${EXTRA_BUILD_CONFIGURATION_FLAGS} \
       ${COMMON_OPTIONS}
 
@@ -292,6 +350,11 @@ if [[ ! -d "$OUTPUT_DIR" && ! -d "$BUILD_DIR" ]]; then
     downloadLibVpx
   fi
 
+  # Download dav1d source code if it doesn't exist
+  if [[ ! -d "$DAV1D_DIR" ]]; then
+    downloadDav1d
+  fi
+
   # Download Ffmpeg source code if it doesn't exist
   if [[ ! -d "$FFMPEG_DIR" ]]; then
     downloadFfmpeg
@@ -300,5 +363,6 @@ if [[ ! -d "$OUTPUT_DIR" && ! -d "$BUILD_DIR" ]]; then
   # Building library
   buildMbedTLS
   buildLibVpx
+  buildDav1d
   buildFfmpeg
 fi
