@@ -206,11 +206,11 @@ function buildDav1d() {
             x86_64)     T=x86_64-linux-android21-; ARCH=x86_64; ASM=false ;;
         esac
 
-        local DAV1D_BUILD=/tmp/dav1d_build_$ABI
+        local DAV1D_BUILD=$BUILD_DIR/dav1d_build_$ABI
         rm -rf $DAV1D_BUILD && mkdir -p $DAV1D_BUILD
 
-        # Create cross-file for meson
-        cat > /tmp/dav1d_cross_$ABI.ini <<EOF
+        # 创建交叉编译文件，用于 Meson
+        cat > $DAV1D_BUILD/cross_file.ini <<EOF
 [binaries]
 c = '${TOOLCHAIN_PREFIX}/bin/${T}clang'
 ar = '${TOOLCHAIN_PREFIX}/bin/llvm-ar'
@@ -223,36 +223,22 @@ cpu = '${ARCH}'
 endian = 'little'
 EOF
 
-        CC=${TOOLCHAIN_PREFIX}/bin/${T}clang \
-        AR=${TOOLCHAIN_PREFIX}/bin/llvm-ar \
-        STRIP=${TOOLCHAIN_PREFIX}/bin/llvm-strip \
+        # 配置 Meson 构建，指定安装前缀
         meson setup $DAV1D_BUILD $SOURCES_DIR/dav1d-${DAV1D_VERSION} \
-          --cross-file=/tmp/dav1d_cross_$ABI.ini \
+          --cross-file=$DAV1D_BUILD/cross_file.ini \
           -Ddefault_library=static \
           -Denable_asm=$ASM \
           -Denable_tools=false -Denable_tests=false -Denable_examples=false \
           -Db_staticpic=true \
-          -Dc_args="-fPIC -O3"
+          -Dc_args="-fPIC -O3" \
+          --prefix=$BUILD_DIR/external/$ABI \
+          --libdir=lib \
+          --includedir=include
 
+        # 编译并安装，Meson 会自动处理库文件和 pkg-config 文件
         meson compile -C $DAV1D_BUILD
+        meson install -C $DAV1D_BUILD
 
-        # Install to external dir
-        mkdir -p $EXTERNAL_DIR/$ABI/lib $EXTERNAL_DIR/$ABI/include/dav1d
-        cp $DAV1D_BUILD/src/libdav1d.a $EXTERNAL_DIR/$ABI/lib/
-        cp $SOURCES_DIR/dav1d-${DAV1D_VERSION}/include/dav1d/*.h $EXTERNAL_DIR/$ABI/include/dav1d/
-
-        # Create pkg-config file (MUST include Description field!)
-        mkdir -p $BUILD_DIR/external/$ABI/lib/pkgconfig
-        cat > $BUILD_DIR/external/$ABI/lib/pkgconfig/dav1d.pc <<EOF
-prefix=$EXTERNAL_DIR/$ABI
-libdir=$EXTERNAL_DIR/$ABI/lib
-includedir=$EXTERNAL_DIR/$ABI/include
-Name: dav1d
-Description: AV1 decoder
-Version: ${DAV1D_VERSION}
-Libs: -L$EXTERNAL_DIR/$ABI/lib -ldav1d
-Cflags: -I$EXTERNAL_DIR/$ABI/include
-EOF
     done
 }
 
