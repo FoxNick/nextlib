@@ -254,6 +254,7 @@ Libs: -L$EXTERNAL_DIR/$ABI/lib -ldav1d
 Cflags: -I$EXTERNAL_DIR/$ABI/include
 EOF
     done
+popd
 }
 
 function buildFfmpeg() {
