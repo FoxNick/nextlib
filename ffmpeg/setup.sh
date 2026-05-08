@@ -293,6 +293,9 @@ function buildFfmpeg() {
     # Referencing dependencies without pkgconfig
     DEP_CFLAGS="-I$BUILD_DIR/external/$ABI/include"
     DEP_LD_FLAGS="-L$BUILD_DIR/external/$ABI/lib"
+    # 【新增】设置 PKG_CONFIG 环境变量，确保 pkg-config 能找到 dav1d 和 vpx
+    export PKG_CONFIG_PATH="$BUILD_DIR/external/$ABI/lib/pkgconfig"
+    export PKG_CONFIG_LIBDIR="$BUILD_DIR/external/$ABI/lib/pkgconfig"
 
     # Configure FFmpeg build
     ./configure \
