@@ -29,7 +29,7 @@ foreach (ffmpeg_lib_name ${ffmpeg_libs_names})
             ${ffmpeg_lib_name}
             PROPERTIES
             IMPORTED_LOCATION
-            ${ffmpeg_libs}/lib${ffmpeg_lib_name}.so)
+            ${ffmpeg_libs}/lib${ffmpeg_lib_name}-exo.so)
 endforeach ()
 
 add_library(${CMAKE_PROJECT_NAME} SHARED
