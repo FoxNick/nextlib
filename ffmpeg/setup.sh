@@ -56,6 +56,12 @@ else
   fi
 fi
 
+# 安装 meson 和 ninja (dav1d 依赖)
+if ! command -v meson &> /dev/null; then
+  echo "Installing meson and ninja..."
+  pip3 install meson ninja
+fi
+
 mkdir -p $SOURCES_DIR
 
 function downloadLibVpx() {
