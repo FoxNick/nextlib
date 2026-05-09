@@ -34,4 +34,6 @@ jobs:
       - uses: actions/upload-artifact@v6.0.0
         with:
           name: release-aars
-          path: /home/runner/work/nextlib/nextlib/media3ext/build/outputs/aar/*.aar /home/runner/work/nextlib/nextlib/mediainfo/build/outputs/aar/*.aar
+          path: |
+              ./media3ext/build/outputs
+              ./mediainfo/build/outputs
