@@ -93,8 +93,8 @@ final class FfmpegVideoDecoder extends
                 }
                 return null;
             }
-            case MimeTypes.VIDEO_H265, MimeTypes.VIDEO_VC1, MimeTypes.VIDEO_RV10,
-                 MimeTypes.VIDEO_RV20, MimeTypes.VIDEO_RV30, MimeTypes.VIDEO_RV40 -> {
+            case MimeTypes.VIDEO_H265, MimeTypes.VIDEO_VC1, "video/x-rv10",
+                 "video/x-rv20", "video/x-rv30", "video/x-rv40" -> {
                 // For these codecs, only the first CSD is needed
                 return initializationData.get(0);
                 // For these codecs, only the first CSD is needed
