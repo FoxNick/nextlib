@@ -35,6 +35,11 @@ final class FfmpegAudioDecoder
   @Nullable private final byte[] extraData;
   private final @C.PcmEncoding int encoding;
   private int outputBufferSize;
+  // FLAC parsing constants
+  private static final byte[] flacStreamMarker = {'f', 'L', 'a', 'C'};
+  private static final int FLAC_METADATA_TYPE_STREAM_INFO = 0;
+  private static final int FLAC_METADATA_BLOCK_HEADER_SIZE = 4;
+  private static final int FLAC_STREAM_INFO_DATA_SIZE = 34;
 
   private long nativeContext; // May be reassigned on resetting the codec.
   private boolean hasOutputFormat;
@@ -53,7 +58,7 @@ final class FfmpegAudioDecoder
       throw new FfmpegDecoderException("Failed to load decoder native libraries.");
     }
     checkNotNull(format.sampleMimeType);
-    codecName = checkNotNull(FfmpegLibrary.getCodecName(format.sampleMimeType));
+    codecName = checkNotNull(FfmpegLibrary.getCodecName(format));
     extraData = getExtraData(format.sampleMimeType, format.initializationData);
     encoding = outputFloat ? C.ENCODING_PCM_FLOAT : C.ENCODING_PCM_16BIT;
     outputBufferSize = outputFloat ? INITIAL_OUTPUT_BUFFER_SIZE_32BIT : INITIAL_OUTPUT_BUFFER_SIZE_16BIT;
@@ -177,9 +182,70 @@ final class FfmpegAudioDecoder
       case MimeTypes.AUDIO_AAC, MimeTypes.AUDIO_OPUS -> initializationData.get(0);
       case MimeTypes.AUDIO_ALAC -> getAlacExtraData(initializationData);
       case MimeTypes.AUDIO_VORBIS -> getVorbisExtraData(initializationData);
+      case MimeTypes.AUDIO_FLAC ->  getFlacExtraData(initializationData);
       // Other codecs do not require extra data.
       default -> null;
     };
+  }
+
+  @Nullable
+  private static byte[] getFlacExtraData(List<byte[]> initializationData) {
+    for (int i = 0; i < initializationData.size(); i++) {
+      byte[] out = extractFlacStreamInfo(initializationData.get(i));
+      if (out != null) {
+        return out;
+      }
+    }
+    return null;
+  }
+
+  @Nullable
+  private static byte[] extractFlacStreamInfo(byte[] data) {
+    int offset = 0;
+    if (arrayStartsWith(data, flacStreamMarker)) {
+      offset = flacStreamMarker.length;
+    }
+
+    if (data.length - offset == FLAC_STREAM_INFO_DATA_SIZE) {
+      byte[] streamInfo = new byte[FLAC_STREAM_INFO_DATA_SIZE];
+      System.arraycopy(data, offset, streamInfo, 0, FLAC_STREAM_INFO_DATA_SIZE);
+      return streamInfo;
+    }
+
+    if (data.length >= offset + FLAC_METADATA_BLOCK_HEADER_SIZE) {
+      int type = data[offset] & 0x7F;
+      int length =
+              ((data[offset + 1] & 0xFF) << 16)
+                      | ((data[offset + 2] & 0xFF) << 8)
+                      | (data[offset + 3] & 0xFF);
+
+      if (type == FLAC_METADATA_TYPE_STREAM_INFO
+              && length == FLAC_STREAM_INFO_DATA_SIZE
+              && data.length >= offset + FLAC_METADATA_BLOCK_HEADER_SIZE + FLAC_STREAM_INFO_DATA_SIZE) {
+        byte[] streamInfo = new byte[FLAC_STREAM_INFO_DATA_SIZE];
+        System.arraycopy(
+                data,
+                offset + FLAC_METADATA_BLOCK_HEADER_SIZE,
+                streamInfo,
+                0,
+                FLAC_STREAM_INFO_DATA_SIZE);
+        return streamInfo;
+      }
+    }
+
+    return null;
+  }
+
+  private static boolean arrayStartsWith(byte[] data, byte[] prefix) {
+    if (data.length < prefix.length) {
+      return false;
+    }
+    for (int i = 0; i < prefix.length; i++) {
+      if (data[i] != prefix[i]) {
+        return false;
+      }
+    }
+    return true;
   }
 
   private static byte[] getAlacExtraData(List<byte[]> initializationData) {

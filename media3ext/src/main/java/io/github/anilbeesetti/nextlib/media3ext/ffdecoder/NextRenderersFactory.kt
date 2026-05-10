@@ -77,6 +77,24 @@ open class NextRenderersFactory(context: Context) : DefaultRenderersFactory(cont
             out
         )
 
+        // Remove Libdav1dVideoRenderer added by super (via reflection) because
+        // FfmpegVideoRenderer already handles AV1 via FFmpeg/libdav1d, and
+        // Libdav1dVideoRenderer can fail on certain AV1 formats (e.g., 4K 60fps).
+        // Also remove other extension video renderers that conflict with FfmpegVideoRenderer.
+        val iterators = out.iterator()
+        while (iterators.hasNext()) {
+            val renderer = iterators.next()
+            val rendererName = renderer.name
+            if (rendererName == "Libdav1dVideoRenderer" ||
+                rendererName == "Av1VideoRenderer" ||
+                rendererName == "Vp9VideoRenderer" ||
+                rendererName == "Vp8VideoRenderer"
+            ) {
+                iterators.remove()
+                Log.i(TAG, "Removed conflicting extension renderer: $rendererName")
+            }
+        }
+
         if (extensionRendererMode == EXTENSION_RENDERER_MODE_OFF) return
 
         var extensionRendererIndex = out.size

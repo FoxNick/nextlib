@@ -79,7 +79,7 @@ public final class FfmpegAudioRenderer extends DecoderAudioRenderer<FfmpegAudioD
     String mimeType = Assertions.checkNotNull(format.sampleMimeType);
     if (!FfmpegLibrary.isAvailable() || !MimeTypes.isAudio(mimeType)) {
       return C.FORMAT_UNSUPPORTED_TYPE;
-    } else if (!FfmpegLibrary.supportsFormat(mimeType)
+    } else if (!FfmpegLibrary.supportsFormat(format)
         || (!sinkSupportsFormat(format, C.ENCODING_PCM_16BIT)
             && !sinkSupportsFormat(format, C.ENCODING_PCM_FLOAT))) {
       return C.FORMAT_UNSUPPORTED_SUBTYPE;

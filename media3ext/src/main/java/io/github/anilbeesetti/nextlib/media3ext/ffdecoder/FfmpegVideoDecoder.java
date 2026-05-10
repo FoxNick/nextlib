@@ -59,7 +59,7 @@ final class FfmpegVideoDecoder extends
             throw new FfmpegDecoderException("Failed to load decoder native library.");
         }
         assert format.sampleMimeType != null;
-        codecName = Assertions.checkNotNull(FfmpegLibrary.getCodecName(format.sampleMimeType));
+        codecName = Assertions.checkNotNull(FfmpegLibrary.getCodecName(format));
         extraData = getExtraData(format.sampleMimeType, format.initializationData);
         this.format = format;
         nativeContext = ffmpegInitialize(codecName, extraData, threads);
@@ -74,25 +74,60 @@ final class FfmpegVideoDecoder extends
      * not required.
      */
     @Nullable
-    private static byte[] getExtraData(String mimeType, List<byte[]> initializationData) {
+    private byte[] getExtraData(String mimeType, List<byte[]> initializationData) {
         if (initializationData.isEmpty()) return null;
+
+        // Special handling for several codecs
         switch (mimeType) {
-            case MimeTypes.VIDEO_H264 -> {
-                byte[] sps = initializationData.get(0);
-                byte[] pps = initializationData.get(1);
-                byte[] extraData = new byte[sps.length + pps.length];
-                System.arraycopy(sps, 0, extraData, 0, sps.length);
-                System.arraycopy(pps, 0, extraData, sps.length, pps.length);
-                return extraData;
-            }
-            case MimeTypes.VIDEO_H265 -> {
-                return initializationData.get(0);
-            }
-            default -> {
-                // Other codecs do not require extra data.
+            case MimeTypes.VIDEO_DOLBY_VISION -> {
+                // Dolby Vision: combine first two CSD entries (if present)
+                if (initializationData.size() >= 2 && initializationData.get(0).length > 0 && initializationData.get(1).length > 0) {
+                    byte[] first = initializationData.get(0);
+                    byte[] second = initializationData.get(1);
+                    byte[] combined = new byte[first.length + second.length];
+                    System.arraycopy(first, 0, combined, 0, first.length);
+                    System.arraycopy(second, 0, combined, first.length, second.length);
+                    return combined;
+                } else if (initializationData.get(0).length > 0) {
+                    return initializationData.get(0);
+                }
                 return null;
             }
+            case MimeTypes.VIDEO_H265, MimeTypes.VIDEO_VC1, MimeTypes.VIDEO_RV10,
+                 MimeTypes.VIDEO_RV20, MimeTypes.VIDEO_RV30, MimeTypes.VIDEO_RV40 -> {
+                // For these codecs, only the first CSD is needed
+                return initializationData.get(0);
+                // For these codecs, only the first CSD is needed
+            }
+            case MimeTypes.VIDEO_H264 -> {
+                // H.264: may have two CSDs (SPS and PPS) that need to be concatenated
+                if (initializationData.size() >= 2) {
+                    byte[] sps = initializationData.get(0);
+                    byte[] pps = initializationData.get(1);
+                    byte[] combined = new byte[sps.length + pps.length];
+                    System.arraycopy(sps, 0, combined, 0, sps.length);
+                    System.arraycopy(pps, 0, combined, sps.length, pps.length);
+                    return combined;
+                } else {
+                    return initializationData.get(0);
+                }
+            }
         }
+
+        // Generic codecs: concatenate all CSD entries
+        int totalSize = 0;
+        for (byte[] csd : initializationData) {
+            totalSize += csd.length;
+        }
+        if (totalSize == 0) {
+            return null;
+        }
+        byte[] merged = new byte[totalSize];
+        ByteBuffer wrapper = ByteBuffer.wrap(merged);
+        for (byte[] csd : initializationData) {
+            wrapper.put(csd);
+        }
+        return merged;
     }
 
     @Override
