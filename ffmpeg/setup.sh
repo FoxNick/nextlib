@@ -19,7 +19,7 @@ DAV1D_DIR=$SOURCES_DIR/dav1d-$DAV1D_VERSION
 # Configuration
 ANDROID_ABIS="x86 x86_64 armeabi-v7a arm64-v8a"
 ANDROID_PLATFORM=21
-ENABLED_DECODERS="vorbis opus flac alac pcm_mulaw pcm_alaw mp3 amrnb amrwb aac ac3 eac3 dca mlp truehd h264 hevc mpeg2video mpegvideo libvpx_vp8 libvpx_vp9 libdav1d wmv3 msmpeg4v1 msmpeg4v2 msmpeg4 vc1 wmv1 wmv2 prores rv10 rv20 rv30 rv40 mpeg4 mjpeg atrac3 adpcm_ms adpcm_ima_wav dsd_msbf dst wmalossless ralf sipr wmapro wmavoice wmav1 wmav2 cook atrac3p"
+ENABLED_DECODERS="vorbis opus flac alac ape wavpack tta nellymoser pcm_mulaw pcm_alaw mp3 amrnb amrwb aac ac3 eac3 dca mlp truehd h264 hevc mpeg2video mpegvideo theora ffv1 dnxhd h263 libvpx_vp8 libvpx_vp9 libdav1d wmv3 vc1 wmv2 prores rv40 mpeg4 mjpeg atrac3 adpcm_ms adpcm_ima_wav wmalossless wmapro cook atrac3p"
 JOBS=$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || sysctl -n hw.pysicalcpu || echo 4)
 
 # Set up host platform variables
