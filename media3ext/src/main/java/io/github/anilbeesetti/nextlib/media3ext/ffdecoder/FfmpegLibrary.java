@@ -144,7 +144,7 @@ public final class FfmpegLibrary {
       case MimeTypes.VIDEO_VC1 -> "vc1";
       case "video/x-ms-wmv2" -> "wmv2";
       case "video/prores" -> "prores";
-      case MimeTypes.VIDEO_RV40 -> "rv40";
+      case "audio/rv40" -> "rv40";
       case MimeTypes.VIDEO_MP4V -> "mpeg4";
       case MimeTypes.VIDEO_MJPEG -> "mjpeg";
       case "video/ogg-theora" -> "theora";
