@@ -89,7 +89,7 @@ final class FfmpegVideoDecoder extends
                 }
                 return null;
             }
-            case MimeTypes.VIDEO_H265, MimeTypes.VIDEO_VC1, MimeTypes.VIDEO_RV40 -> {
+            case MimeTypes.VIDEO_H265, MimeTypes.VIDEO_VC1, "audio/rv40" -> {
                 return initializationData.get(0);
             }
             case MimeTypes.VIDEO_H264 -> {
