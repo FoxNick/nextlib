@@ -322,6 +322,7 @@ function buildFfmpeg() {
       --disable-postproc \
       --disable-avfilter \
       --disable-symver \
+      --enable-avcodec \
       --enable-parsers \
       --enable-demuxers \
       --enable-swresample \
