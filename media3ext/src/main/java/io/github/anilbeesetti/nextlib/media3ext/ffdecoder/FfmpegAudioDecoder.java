@@ -179,14 +179,58 @@ final class FfmpegAudioDecoder
   private static byte[] getExtraData(String mimeType, List<byte[]> initializationData) {
     if (initializationData.isEmpty()) return null;
     return switch (mimeType) {
-      case MimeTypes.AUDIO_AAC, MimeTypes.AUDIO_OPUS -> initializationData.get(0);
+      case MimeTypes.AUDIO_AAC, MimeTypes.AUDIO_OPUS, 
+             MimeTypes.AUDIO_AC3, MimeTypes.AUDIO_E_AC3, 
+             MimeTypes.AUDIO_DTS, MimeTypes.AUDIO_MPEG -> 
+             initializationData.get(0);
       case MimeTypes.AUDIO_ALAC -> getAlacExtraData(initializationData);
       case MimeTypes.AUDIO_VORBIS -> getVorbisExtraData(initializationData);
       case MimeTypes.AUDIO_FLAC ->  getFlacExtraData(initializationData);
-      // Other codecs do not require extra data.
-      default -> null;
+
+      // --- 【关键修改】默认情况：不再返回 null，而是拼接所有数据 ---
+      // FFmpeg 的音频解码器通常能很好地处理完整的 Extra Data
+      default -> mergeInitializationData(initializationData);
     };
   }
+/**
+ * 将 List<byte[]> 中的所有字节数组拼接成一个完整的字节数组。
+ * 用于为 FFmpeg 解码器组装完整的 Extra Data (CSD)。
+ *
+ * @param initializationData 包含多段 CSD 数据的列表
+ * @return 拼接后的完整字节数组，如果列表为空或总长度为0则返回 null
+ */
+private static byte[] mergeInitializationData(List<byte[]> initializationData) {
+    // 1. 防御性编程：空列表直接返回 null
+    if (initializationData == null || initializationData.isEmpty()) {
+        return null;
+    }
+
+    // 2. 计算所有数组的总长度
+    int totalSize = 0;
+    for (byte[] csd : initializationData) {
+        totalSize += csd.length;
+    }
+
+    // 3. 如果总长度为0，返回 null (避免返回空数组，FFmpeg 通常期望 null 代表无数据)
+    if (totalSize == 0) {
+        return null;
+    }
+
+    // 4. 申请目标数组
+    byte[] merged = new byte[totalSize];
+    
+    // 5. 记录当前拷贝的偏移量
+    int currentOffset = 0;
+    
+    // 6. 遍历并拷贝数据
+    for (byte[] csd : initializationData) {
+        // 参数依次是：源数组, 源数组起始位置, 目标数组, 目标数组起始位置, 拷贝长度
+        System.arraycopy(csd, 0, merged, currentOffset, csd.length);
+        currentOffset += csd.length;
+    }
+
+    return merged;
+}
 
   @Nullable
   private static byte[] getFlacExtraData(List<byte[]> initializationData) {
