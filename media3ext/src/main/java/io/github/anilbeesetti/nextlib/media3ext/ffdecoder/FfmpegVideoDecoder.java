@@ -75,60 +75,73 @@ final class FfmpegVideoDecoder extends
      */
     @Nullable
     private byte[] getExtraData(String mimeType, List<byte[]> initializationData) {
-        if (initializationData.isEmpty()) return null;
+    if (initializationData.isEmpty()) return null;
 
-        // Special handling for several codecs
-        switch (mimeType) {
-            case MimeTypes.VIDEO_DOLBY_VISION -> {
-                // Dolby Vision: combine first two CSD entries (if present)
-                if (initializationData.size() >= 2 && initializationData.get(0).length > 0 && initializationData.get(1).length > 0) {
-                    byte[] first = initializationData.get(0);
-                    byte[] second = initializationData.get(1);
-                    byte[] combined = new byte[first.length + second.length];
-                    System.arraycopy(first, 0, combined, 0, first.length);
-                    System.arraycopy(second, 0, combined, first.length, second.length);
-                    return combined;
-                } else if (initializationData.get(0).length > 0) {
-                    return initializationData.get(0);
-                }
-                return null;
-            }
-            case MimeTypes.VIDEO_H265, MimeTypes.VIDEO_VC1, "video/x-rv10",
-                 "video/x-rv20", "video/x-rv30", "video/x-rv40" -> {
-                // For these codecs, only the first CSD is needed
+    // 特定格式的特殊处理
+    switch (mimeType) {
+        case MimeTypes.VIDEO_DOLBY_VISION -> {
+            // Dolby Vision: combine first two CSD entries (if present)
+            if (initializationData.size() >= 2 && initializationData.get(0).length > 0 && initializationData.get(1).length > 0) {
+                byte[] first = initializationData.get(0);
+                byte[] second = initializationData.get(1);
+                byte[] combined = new byte[first.length + second.length];
+                System.arraycopy(first, 0, combined, 0, first.length);
+                System.arraycopy(second, 0, combined, first.length, second.length);
+                return combined;
+            } else if (initializationData.get(0).length > 0) {
                 return initializationData.get(0);
-                // For these codecs, only the first CSD is needed
             }
-            case MimeTypes.VIDEO_H264 -> {
-                // H.264: may have two CSDs (SPS and PPS) that need to be concatenated
-                if (initializationData.size() >= 2) {
-                    byte[] sps = initializationData.get(0);
-                    byte[] pps = initializationData.get(1);
-                    byte[] combined = new byte[sps.length + pps.length];
-                    System.arraycopy(sps, 0, combined, 0, sps.length);
-                    System.arraycopy(pps, 0, combined, sps.length, pps.length);
-                    return combined;
-                } else {
-                    return initializationData.get(0);
-                }
-            }
-        }
-
-        // Generic codecs: concatenate all CSD entries
-        int totalSize = 0;
-        for (byte[] csd : initializationData) {
-            totalSize += csd.length;
-        }
-        if (totalSize == 0) {
             return null;
         }
-        byte[] merged = new byte[totalSize];
-        ByteBuffer wrapper = ByteBuffer.wrap(merged);
-        for (byte[] csd : initializationData) {
-            wrapper.put(csd);
+        
+        // 【修改】替换废弃的 VIDEO_VC1，并加入 AV1
+        case MimeTypes.VIDEO_H265, "video/wvc1", "video/x-ms-wvc1",
+             MimeTypes.VIDEO_AV1, // AV1 也只需取第一段，或者拼接起来都可以。通常取第一段 Sequence Header OBU 即可
+             "video/x-rv10", "video/x-rv20", "video/x-rv30", "video/x-rv40" -> {
+            // For these codecs, only the first CSD is needed
+            return initializationData.get(0);
         }
-        return merged;
+        
+        case MimeTypes.VIDEO_H264 -> {
+            // H.264: may have two CSDs (SPS and PPS) that need to be concatenated
+            if (initializationData.size() >= 2) {
+                // 【优化】直接复用合并方法，代码更简洁
+                return mergeInitializationData(initializationData.subList(0, 2));
+            } else {
+                return initializationData.get(0);
+            }
+        }
     }
+
+    // Generic codecs: concatenate all CSD entries
+    return mergeInitializationData(initializationData);
+}
+
+// 合并 initializationData 的工具方法
+private byte[] mergeInitializationData(List<byte[]> initializationData) {
+    if (initializationData == null || initializationData.isEmpty()) {
+        return null;
+    }
+
+    int totalSize = 0;
+    for (byte[] csd : initializationData) {
+        totalSize += csd.length;
+    }
+
+    if (totalSize == 0) {
+        return null;
+    }
+
+    byte[] merged = new byte[totalSize];
+    int currentOffset = 0;
+    for (byte[] csd : initializationData) {
+        // 使用 System.arraycopy 替代 ByteBuffer，性能更优
+        System.arraycopy(csd, 0, merged, currentOffset, csd.length);
+        currentOffset += csd.length;
+    }
+
+    return merged;
+}
 
     @Override
     public String getName() {
