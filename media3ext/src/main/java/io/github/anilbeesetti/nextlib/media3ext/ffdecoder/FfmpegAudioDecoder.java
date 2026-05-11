@@ -109,13 +109,9 @@ final class FfmpegAudioDecoder
     if (result == AUDIO_DECODER_ERROR_OTHER) {
       return new FfmpegDecoderException("Error decoding (see logcat).");
     } else if (result == AUDIO_DECODER_ERROR_INVALID_DATA) {
-      // Treat invalid data errors as non-fatal to match the behavior of MediaCodec. No output will
-      // be produced for this buffer, so mark it as decode-only to ensure that the audio sink's
-      // position is reset when more audio is produced.
       outputBuffer.shouldBeSkipped = true;
       return null;
     } else if (result == 0) {
-      // There's no need to output empty buffers.
       outputBuffer.shouldBeSkipped = true;
       return null;
     }
@@ -124,16 +120,12 @@ final class FfmpegAudioDecoder
       sampleRate = ffmpegGetSampleRate(nativeContext);
       if (sampleRate == 0 && "alac".equals(codecName)) {
         checkNotNull(extraData);
-        // ALAC decoder did not set the sample rate in earlier versions of FFmpeg. See
-        // https://trac.ffmpeg.org/ticket/6096.
         ParsableByteArray parsableExtraData = new ParsableByteArray(extraData);
         parsableExtraData.setPosition(extraData.length - 4);
         sampleRate = parsableExtraData.readUnsignedIntToInt();
       }
       hasOutputFormat = true;
     }
-    // Get a new reference to the output ByteBuffer in case the native decode method reallocated the
-    // buffer to grow its size.
     outputData = checkNotNull(outputBuffer.data);
     outputData.position(0);
     outputData.limit(result);
@@ -144,7 +136,6 @@ final class FfmpegAudioDecoder
   /** @noinspection unused*/
   @Keep
   private ByteBuffer growOutputBuffer(SimpleDecoderOutputBuffer outputBuffer, int requiredSize) {
-    // Use it for new buffer so that hopefully we won't need to reallocate again
     outputBufferSize = requiredSize;
     return outputBuffer.grow(requiredSize);
   }
@@ -179,58 +170,13 @@ final class FfmpegAudioDecoder
   private static byte[] getExtraData(String mimeType, List<byte[]> initializationData) {
     if (initializationData.isEmpty()) return null;
     return switch (mimeType) {
-      case MimeTypes.AUDIO_AAC, MimeTypes.AUDIO_OPUS, 
-             MimeTypes.AUDIO_AC3, MimeTypes.AUDIO_E_AC3, 
-             MimeTypes.AUDIO_DTS, MimeTypes.AUDIO_MPEG -> 
-             initializationData.get(0);
+      case MimeTypes.AUDIO_AAC, MimeTypes.AUDIO_OPUS -> initializationData.get(0);
       case MimeTypes.AUDIO_ALAC -> getAlacExtraData(initializationData);
       case MimeTypes.AUDIO_VORBIS -> getVorbisExtraData(initializationData);
       case MimeTypes.AUDIO_FLAC ->  getFlacExtraData(initializationData);
-
-      // --- 【关键修改】默认情况：不再返回 null，而是拼接所有数据 ---
-      // FFmpeg 的音频解码器通常能很好地处理完整的 Extra Data
       default -> mergeInitializationData(initializationData);
     };
   }
-/**
- * 将 List<byte[]> 中的所有字节数组拼接成一个完整的字节数组。
- * 用于为 FFmpeg 解码器组装完整的 Extra Data (CSD)。
- *
- * @param initializationData 包含多段 CSD 数据的列表
- * @return 拼接后的完整字节数组，如果列表为空或总长度为0则返回 null
- */
-private static byte[] mergeInitializationData(List<byte[]> initializationData) {
-    // 1. 防御性编程：空列表直接返回 null
-    if (initializationData == null || initializationData.isEmpty()) {
-        return null;
-    }
-
-    // 2. 计算所有数组的总长度
-    int totalSize = 0;
-    for (byte[] csd : initializationData) {
-        totalSize += csd.length;
-    }
-
-    // 3. 如果总长度为0，返回 null (避免返回空数组，FFmpeg 通常期望 null 代表无数据)
-    if (totalSize == 0) {
-        return null;
-    }
-
-    // 4. 申请目标数组
-    byte[] merged = new byte[totalSize];
-    
-    // 5. 记录当前拷贝的偏移量
-    int currentOffset = 0;
-    
-    // 6. 遍历并拷贝数据
-    for (byte[] csd : initializationData) {
-        // 参数依次是：源数组, 源数组起始位置, 目标数组, 目标数组起始位置, 拷贝长度
-        System.arraycopy(csd, 0, merged, currentOffset, csd.length);
-        currentOffset += csd.length;
-    }
-
-    return merged;
-}
 
   @Nullable
   private static byte[] getFlacExtraData(List<byte[]> initializationData) {
@@ -293,18 +239,13 @@ private static byte[] mergeInitializationData(List<byte[]> initializationData) {
   }
 
   private static byte[] getAlacExtraData(List<byte[]> initializationData) {
-    // FFmpeg's ALAC decoder expects an ALAC atom, which contains the ALAC "magic cookie", as extra
-    // data. initializationData[0] contains only the magic cookie, and so we need to package it into
-    // an ALAC atom. See:
-    // https://ffmpeg.org/doxygen/0.6/alac_8c.html
-    // https://github.com/macosforge/alac/blob/master/ALACMagicCookieDescription.txt
     byte[] magicCookie = initializationData.get(0);
     int alacAtomLength = 12 + magicCookie.length;
     ByteBuffer alacAtom = ByteBuffer.allocate(alacAtomLength);
     alacAtom.putInt(alacAtomLength);
-    alacAtom.putInt(0x616c6163); // type=alac
-    alacAtom.putInt(0); // version=0, flags=0
-    alacAtom.put(magicCookie, /* offset= */ 0, magicCookie.length);
+    alacAtom.putInt(0x616c6163);
+    alacAtom.putInt(0);
+    alacAtom.put(magicCookie, 0, magicCookie.length);
     return alacAtom.array();
   }
 
@@ -321,6 +262,26 @@ private static byte[] mergeInitializationData(List<byte[]> initializationData) {
     extraData[header0.length + 5] = (byte) (header1.length & 0xFF);
     System.arraycopy(header1, 0, extraData, header0.length + 6, header1.length);
     return extraData;
+  }
+
+  /**
+   * Merges all initialization data entries into a single byte array.
+   */
+  @Nullable
+  private static byte[] mergeInitializationData(List<byte[]> initializationData) {
+    if (initializationData.isEmpty()) return null;
+    int totalSize = 0;
+    for (byte[] data : initializationData) {
+      totalSize += data.length;
+    }
+    if (totalSize == 0) return null;
+    byte[] merged = new byte[totalSize];
+    int offset = 0;
+    for (byte[] data : initializationData) {
+      System.arraycopy(data, 0, merged, offset, data.length);
+      offset += data.length;
+    }
+    return merged;
   }
 
   private native long ffmpegInitialize(

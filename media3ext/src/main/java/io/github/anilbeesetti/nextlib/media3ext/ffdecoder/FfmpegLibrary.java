@@ -89,37 +89,22 @@ public final class FfmpegLibrary {
   @Nullable
   public static String getCodecName(Format format) {
     String mimeType = format.sampleMimeType;
-
-    // 1. Raw audio -> PCM
-    if (MimeTypes.AUDIO_RAW.equals(mimeType)) {
-      int encoding = format.pcmEncoding;
-      return switch (encoding) {
-        case 3 -> "pcm_u8";
-        case 4 -> "pcm_f32le";
-        case 21 -> "pcm_s24le";
-        case 22 -> "pcm_s32le";
-        case 0x10000000 -> "pcm_s16be";
-        case 0x50000000 -> "pcm_s24be";
-        case 0x60000000 -> "pcm_s32be";
-        case 0x70000000 -> "pcm_f64le";
-        default -> "pcm_s16le";
-      };
-    }
-
-    // 2. Dolby Vision special handling
+    // Dolby Vision special handling - map to base codec (H264/HEVC/AV1)
+    // Dolby Vision metadata is handled by ExoPlayer layer, FFmpeg just decodes the base stream
     if (MimeTypes.VIDEO_DOLBY_VISION.equals(mimeType)) {
       String codecPrivate = format.codecs;
       if (codecPrivate == null) return "hevc";
-      if (codecPrivate.startsWith("dvav")) return "h264";
-      if (codecPrivate.startsWith("dav1")) return null;
+      if (codecPrivate.startsWith("dvav") || codecPrivate.startsWith("dva1")) return "h264";
+      if (codecPrivate.startsWith("dav1") || codecPrivate.startsWith("dvav")) return "libdav1d";
       return "hevc";
     }
 
-    // 3. All other MIME mappings
+    // All other MIME mappings (only decoders enabled in ENABLED_DECODERS)
     return switch (mimeType) {
-      // Audio
+      // Audio (15 standard decoders)
       case MimeTypes.AUDIO_AAC -> "aac";
       case MimeTypes.AUDIO_MPEG, MimeTypes.AUDIO_MPEG_L1, MimeTypes.AUDIO_MPEG_L2 -> "mp3";
+      case "audio/mp2" -> "mp2";
       case MimeTypes.AUDIO_AC3 -> "ac3";
       case MimeTypes.AUDIO_E_AC3, MimeTypes.AUDIO_E_AC3_JOC -> "eac3";
       case MimeTypes.AUDIO_TRUEHD -> "truehd";
@@ -132,48 +117,40 @@ public final class FfmpegLibrary {
       case MimeTypes.AUDIO_ALAC -> "alac";
       case MimeTypes.AUDIO_MLAW -> "pcm_mulaw";
       case MimeTypes.AUDIO_ALAW -> "pcm_alaw";
-      // Non‑standard audio
-      case "audio/vnd.dsd-lsbf-planar" -> "dsd_lsbf_planar";
+      // Non-standard audio (13 decoders)
       case "audio/atrac3" -> "atrac3";
       case "audio/x-adpcm-ms" -> "adpcm_ms";
       case "audio/x-adpcm-ima-wav" -> "adpcm_ima_wav";
-      case "audio/vnd.dsd" -> "dsd_msbf";
-      case "audio/vnd.dst" -> "dst";
       case "audio/x-ms-wmalossless" -> "wmalossless";
-      case "audio/x-ralf" -> "ralf";
-      case "audio/x-sipr" -> "sipr";
       case "audio/x-ms-wmapro" -> "wmapro";
-      case "audio/x-ms-wmavoice" -> "wmavoice";
-      case "audio/vnd.dsd-msbf-planar" -> "dsd_msbf_planar";
-      case "audio/x-ms-wmav1" -> "wmav1";
-      case "audio/x-ms-wmav2" -> "wmav2";
-      case "audio/av3a" -> "libarcdav3a";
       case "audio/cook" -> "cook";
       case "audio/atrac3p" -> "atrac3p";
+      case "audio/x-monkeys-audio" -> "ape";
+      case "audio/x-wavpack" -> "wavpack";
+      case "audio/x-tta" -> "tta";
+      case "audio/x-nellymoser" -> "nellymoser";
 
-      // Video
+      // Video (20 decoders)
       case MimeTypes.VIDEO_H264 -> "h264";
       case MimeTypes.VIDEO_H265 -> "hevc";
-      case MimeTypes.VIDEO_MPEG -> "mpeg1video";
+      case MimeTypes.VIDEO_MPEG -> "mpegvideo";
       case MimeTypes.VIDEO_MPEG2 -> "mpeg2video";
-      case MimeTypes.VIDEO_VP8 -> "libvpx";
-      case MimeTypes.VIDEO_VP9 -> "libvpx-vp9";
+      case "video/mpeg1" -> "mpegvideo";
+      case MimeTypes.VIDEO_VP8 -> "libvpx_vp8";
+      case MimeTypes.VIDEO_VP9 -> "libvpx_vp9";
       case MimeTypes.VIDEO_AV1 -> "libdav1d";
-      // Non‑standard video
+      // Non-standard video (9 decoders)
       case "video/x-ms-wmv" -> "wmv3";
-      case "video/mp41" -> "msmpeg4v1";
-      case "video/mp42" -> "msmpeg4v2";
-      case "video/mp43" -> "msmpeg4";
-      case "video/wvc1" -> "vc1";
-      case "video/x-ms-wmv1" -> "wmv1";
+      case MimeTypes.VIDEO_VC1 -> "vc1";
       case "video/x-ms-wmv2" -> "wmv2";
       case "video/prores" -> "prores";
-      case "video/x-rv10" -> "rv10";
-      case "video/x-rv20" -> "rv20";
-      case "video/x-rv30" -> "rv30";
-      case "video/x-rv40" -> "rv40";
-      case "video/mp4v-es" -> "mpeg4";
-      case "video/mjpeg" -> "mjpeg";
+      case MimeTypes.VIDEO_RV40 -> "rv40";
+      case MimeTypes.VIDEO_MP4V -> "mpeg4";
+      case MimeTypes.VIDEO_MJPEG -> "mjpeg";
+      case "video/ogg-theora" -> "theora";
+      case "video/x-ffv1" -> "ffv1";
+      case "video/x-dnxhd" -> "dnxhd";
+      case MimeTypes.VIDEO_H263 -> "h263";
 
       default -> null;
     };
